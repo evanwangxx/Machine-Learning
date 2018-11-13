@@ -1,0 +1,94 @@
+---
+title: "hw3_hw2570"
+author: "Hongbo Wang hw2570"
+date: "October 9, 2016"
+output: md_document
+---
+#### i.
+##### a.
+```{r}
+rm(list = ls())
+filename <- "~/Desktop/R data/NetsSchedule.html"
+nets1617 <- readLines(filename)
+length(nets1617)
+```
+
+##### b.
+```{r}
+sum(nchar(nets1617))
+```
+
+#####c.
+```{r}
+max(nchar(nets1617))
+```
+
+#### ii.
+*Boston* are playing first at Wed, Oct 26 at 7:30 PM, and *Chicago* are playing last at Wed, Apr 12, 8:00 PM.
+
+#### iii.
+Boston at line 315.
+Chicago at line 396
+
+#### iv.
+```{r}
+Date_exp <- "[A-Z][a-z]{2}, [A-Z][a-z]{2} [0-9]+"
+L_date <- grep(nets1617, pattern = Date_exp)
+length(L_date); L_date[c(1, length(L_date))]
+```
+#### v.
+```{r}
+L_date <- grepl(nets1617, pattern = Date_exp)
+match <- gregexpr(pattern = Date_exp, text = nets1617[L_date])
+date <- regmatches(nets1617[L_date], match)
+head(date,3); length(date)
+```
+
+#### vi.
+```{r}
+time_exp <- "[0-9]{1,2}:[0-9]{2} AM|[0-9]{1,2}:[0-9]{2} PM"
+L_time <- grepl(pattern = time_exp, nets1617)
+match <- gregexpr(pattern = time_exp, nets1617[L_time])
+time <- regmatches(nets1617[L_time], match)
+head(time,3); length(time)
+```
+
+#### vii.
+```{r}
+home_away_exp <- "<li class=\"game-status\">[@|vs]"
+L_home_away <- grepl(nets1617, pattern = home_away_exp)
+match <- gregexpr(pattern = home_away_exp, text = nets1617[L_home_away])
+home_away <- regmatches(nets1617[L_home_away], match)
+home <- substr(home_away, 25,25)
+for(i in 1:length(home)){
+  if(home[i] == "@"){
+    home[i] = 0}
+  else if(home[i] == "v"){
+    home[i] = 1}
+}
+head(home,3); length(home)
+```
+
+#### viii.
+```{r}
+opp_exp_1 <- "<li class=\"team-name\">"
+opp_exp_2 <- ">[A-Z]+[a-z]* [A-Z]{1}[a-z]+<|>[A-Z]{1}[a-z]+<|>LA<"
+L_opp <- grepl(pattern = opp_exp_1, nets1617)
+match <- gregexpr(pattern = opp_exp_2, text = nets1617[L_opp])
+opponent <- regmatches(nets1617[L_opp], match)
+opponent[1] = ">Boston<"           # since only the first one is special, we treat it special
+opponent <- substr(opponent, 2, nchar(opponent)-1)  # remove the '>' and '<'
+head(opponent,3); length(opponent)
+```
+
+#### ix.
+```{r}
+time <- substr(time, 1 , nchar(time))
+date <- substr(date, 1 , nchar(date))
+matches <- data.frame(date, time, opponent, home)
+head(matches, 10)
+```
+
+
+
+

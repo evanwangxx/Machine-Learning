@@ -1,0 +1,79 @@
+---
+title: "HW9a_hw2570"
+author: "Hongbo Wang hw2570"
+date: "December 5, 2016"
+output: md_document
+---
+
+### 1.
+```{r}
+rm(list = ls())
+nodes <-read.csv("~/Desktop/R data/ckm_nodes.csv", header = TRUE )
+
+pres_tet <- rep(NA)
+for(i in 1 : length(unique(nodes$adoption)) - 2){
+  pres_tet[i] <- length(which(nodes$adoption_date == i))
+}
+
+pres_tet[length(unique(nodes$adoption)) - 1] <- length(which(nodes$adoption_date == Inf))
+pres_tet[length(unique(nodes$adoption))    ] <- sum(is.na(nodes$adoption_date))
+pres_tet <- data.frame(t(pres_tet))
+colnames(pres_tet) <- c(1: (length(unique(nodes$adoption)) - 2), "Inf", "NA"); rownames(pres_tet) <- "number"
+pres_tet
+```
+
+
+### 2.
+```{r}
+index_not_NA <- which(is.na(nodes$adoption) == FALSE)
+length(index_not_NA)
+nodes <- nodes[index_not_NA, ]
+```
+
+### 3.
+```{r}
+plot(c(1:17), pres_tet[ , c(1:17)], xaxt='n', xlab = "month", ylab = "number", las = 2)
+axis(side = 1, at = c(1:17), labels = T, las = 2)
+
+step_sum <- rep(NA)
+step_sum[1] <- pres_tet[1]
+for(i in 2:17){
+  step_sum[i] <- step_sum[i-1] + pres_tet[i]
+}
+step_sum <- unlist(step_sum)
+plot(c(1:17), step_sum, xlab = "month", ylab = "total number")
+```
+
+### 4.
+```{r}
+logic_lesFeb <- nodes$adoption <= 2
+feb_doc <- which(logic_lesFeb)
+length(feb_doc)
+
+logic_af14 <- nodes$adoption > 14
+af14_doc <- which(logic_af14)
+length(af14_doc)
+```
+
+### 5.
+```{r}
+network <- read.table("~/Desktop/R data/ckm_network.txt")
+dim(network)
+network <- network[index_not_NA, index_not_NA]
+dim(network)
+```
+
+### 6. 
+```{r}
+num_contact <- as.vector(apply(network, 2, sum))
+num_contact[41]
+```
+
+### 7.
+```{r}
+logic_37 <- as.vector(network[37, ] == 1 & nodes$adoption_date <= 5)
+sum(logic_37 == TRUE)
+sum(logic_37 == TRUE) / num_contact[37]
+```
+
+

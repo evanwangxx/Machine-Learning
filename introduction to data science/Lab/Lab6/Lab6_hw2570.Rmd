@@ -1,0 +1,92 @@
+---
+title: "Lab 6"
+author: "Hongbo Wang hw2570"
+date: "Dec 3, 2016"
+output: md_document
+---
+
+In today's lab we will use data on the 2829 fastest men's and women's 100m sprint times saved as dataframes `sprint.m.csv` and `sprint.f.csv`.
+```{r}
+rm(list = ls())
+```
+1. Load the dataframe `sprint.m.csv` and save it as `sprint.m`.  Append a column to the dataframe called `CityDate` that is defined by concatenating the string entries in the `City` and `Date` columns.  For example, entries "Berlin" and "16.08.2009" in the `City` and `Date` columns, respectively, produce an entry of "Berlin 16.08.2009" in the `CityDate` column.  We assume that every unique combination of city and date in the `CityDate` column corresponds to a unique track meet.  How many unique track meets occur?  How many other sprint times were recorded in the same track meet as Usain Bolt's legendary time of 9.58 seconds?
+
+```{r}
+sprint_m <- read.csv("~/Desktop/R data/sprint.m.csv", header = TRUE)
+dim_m <- dim(sprint_m)
+
+CityDate <- rep(NA)
+for(i in 1:dim_m[1]){
+  CityDate[i] <- paste(sprint_m$City[i], sprint_m$Date[i], sep = " ")
+}
+sprint_m$CityDate <- CityDate
+
+length(unique(sprint_m$CityDate))
+dim(subset(sprint_m, CityDate == "Berlin 16.08.2009"))[1]
+```
+
+2.  Compute a reduced version of `sprint.m` that only keeps the fastest time from each track meet.  For example, of all rows that correspond to sprint times recorded at the "Berlin 16.08.2009" track meet, we will only keep Usain Bolt's row since his time of 9.58 was fastest.  Hint: There are many ways to do this, `tapply()` or `split()` might be helpful.  You can do this without using a loop.  Call the result `sprint.m.fastest` and check that the number of rows is the same as the number of unique men's track meets.  Display the first five rows.  
+
+```{r}
+library(plyr)
+fast_time <- function(track, Data){
+  return(subset(Data, CityDate == track)[1, ])
+}
+sprint_m_fastest <- adply(unique(sprint_m$CityDate), 1 , fast_time, Data = sprint_m)
+
+dim(sprint_m_fastest)
+head(sprint_m_fastest, 5)
+```
+
+3. Load the women's dataframe `sprint.f.csv` and repeat steps (1) and (2) on this dataset so that what remains is `sprint.f.fastest`.  Display the first five rows.
+
+```{r}
+sprint_f <- read.csv("~/Desktop/R data/sprint.w.csv", header = TRUE)
+dim_f <- dim(sprint_f)
+CityDate <- rep(NA)
+for(i in 1:dim_f[1]){
+  CityDate[i] <- paste(sprint_f$City[i], sprint_f$Date[i], sep = " ")
+}
+sprint_f$CityDate <- CityDate
+length(unique(sprint_f$CityDate))
+
+sprint_f_fastest <- adply(unique(sprint_f$CityDate), 1 , fast_time, Data = sprint_f)
+dim(sprint_f_fastest)
+head(sprint_f_fastest, 5)
+```
+
+**Complete the final questions only if you have time.  It's not necessary for full credit.  **
+
+4.  We want to merge the dataframes `sprint.m.fastest` and `sprint.f.fastest` over rows that correspond to times recorded at the same track meet.  First find the common track meets between the two data frames, i.e. the common entries in `CityDate`.  Hint: Use `intersect()`.  Call the result `common.meets`.  Then compute the rows of each dataframe that correspond to these common track meets.  Hint: Use `which()` and `is.element()`.  Call the results `ind.m` and `ind.w`.  Both should have length 385.
+
+```{r}
+common_meets <- intersect(sprint_m_fastest$CityDate, sprint_f_fastest$CityDate)
+ind_m <- rep(NA) ; ind_w <- rep(NA)
+for(i in 1:length(common_meets)){
+  ind_m[i] <- which(sprint_m_fastest$CityDate == common_meets[i])
+  ind_w[i] <- which(sprint_f_fastest$CityDate == common_meets[i])
+}
+length(ind_m) ; length(ind_w)
+
+```
+
+5.   Now create a new dataframe that merges the columns of `sprint.m.fastest` with `sprint.f.fastest`, but keeping only rows that correspond to common track meets (these are indexed by `ind.m` and `ind.f`).  Call the result `sprint` and arrange it so that the dataframe only has three columns: `MensTime`, `WomensTime`, and `CityDate` (the common track meet).  Display the first five rows.  Note here that we are implicitly assming that both `sprint.m.fastest` with `sprint.f.fastest` are ordered in the same way according to the `CityDate` variable.
+
+```{r}
+sprint <- cbind.data.frame(sprint_m_fastest[ind_m, c("Time")], sprint_f_fastest[ind_w, c("Time", "CityDate")])
+colnames(sprint) <- c("MensTime", "WomensTime", "CityDate"); rownames(sprint) <- c(1:dim(sprint)[1]) 
+
+head(sprint, 5)
+```
+
+6. Note that the previous merge could have been done with the `merge()` function.  Can you get the same result using `merge()`?
+
+```{r}
+colnames(sprint_f_fastest)[10] <- "CityDate_f"
+sprint_merge <- merge(sprint_m_fastest[, c("Time", "CityDate")], 
+                      sprint_f_fastest[, c("Time", "CityDate_f")], 
+                      by.x = "CityDate", by.y = "CityDate_f")
+sprint_merge <- sprint_merge[order(sprint_merge$Time.x), ]  # re-order the dataframe by the time of men's, to make sure it is same as the previous dataframe
+sprint_merge <- sprint_merge[, c(2, 3, 1)]; rownames(sprint) <- c(1:dim(sprint)[1]) 
+head(sprint_merge, 5)
+```

@@ -1,0 +1,236 @@
+
+---
+title: "Untitled"
+author: "Hongbo Wang hw2570"
+date: "November 7, 2016"
+output: md_document
+---
+### Part 1: Inverse Transform Method
+### 1.
+```{r}
+rm(list = ls())
+Data <- read.csv("~/Desktop/R data/wtid-report.csv", header = T)
+colnames(Data) <- c("Country", "Year", "P99", "P99.5", "P99.9")
+x_min <- Data[Data$Year == 2015, "P99"]
+a_hat <- 2.654
+
+f <- function(x, a = a_hat, xmin = x_min){
+  fx <- ((a - 1)/xmin) * ((x/xmin)^(-a))
+  return( ifelse( (x < xmin), -Inf, fx) )
+}
+
+x <- x_min:1000000
+plot(x, f(x), type = "l")
+```
+
+### 2.
+```{r}
+upper_income <- function(u, a = a_hat, xmin = x_min){
+  Fx <- xmin * ((1 - u)^(1/(1-a))) 
+  return( ifelse( (u < 0 | u > 1) , -Inf, Fx) )
+}
+upper_income(0.5)
+```
+
+### 3.
+```{r}
+n_sam = 1000   # number of sample
+u <- runif(n_sam)
+x <- upper_income(u)
+
+hist(x, prob = TRUE, breaks = 20)
+x_lab <- seq(0, max(x), 100)
+lines(x_lab, f(x_lab), col = 2)
+legend("topright", c("Simulated value", "Pareto density"), col = c(1, 2), pch = c(1,1))
+```
+
+### 4.
+```{r}
+x_med_sim <- median(x)
+
+prob = 0.5
+x_med_dis <- x_min * ((prob) ^ (1 / (1 - a_hat)))
+cat("from simulation", x_med_sim, "\nby function", x_med_dis)
+
+```
+
+
+### Part 2: Reject-Accept Method
+### 5.
+```{r}
+rm(list = ls())
+
+f <- function(x){
+  f <- (1/9) * (4 - x^2)
+  return(ifelse((x <= -1 | x >= 2), 0, f))
+}
+
+x <- seq(-3, 3, by = 0.001)
+plot(x, f(x), type = "l")
+```
+
+### 6. 
+Derive the derivative of the function $f(x)$, we get $\frac{2}{9}x$. So when $x=0$, we get the maximum of the function $f(x)$.
+```{r}
+# max when f'(x) = 0 ==> x = 0
+f_max <- f(0)
+
+e <- function(x){  
+  return(ifelse((x < -1 | x > 2), Inf,  f_max))
+}
+
+plot(x, f(x), type = "l")
+lines(c(-1, -1), c(0, e(-1)), col = 2)
+lines(c(2, 2), c(0, e(2)), col = 2)
+lines(x, e(x), col = 2 )
+```
+
+### 7.
+```{r}
+n_samp <- 1000
+i = 0
+samps <- rep(NA)
+while(i < n_samp){
+  y <- runif(1, min = -1, max = 2)
+  u <- runif(1)
+  if( u <= f(y)/e(y)){
+    i = i + 1
+    samps[i] <- y
+  } 
+}
+```
+
+### 8.
+```{r}
+hist(samps, prob = TRUE)
+lines(x, f(x), col = 2)
+legend("topright", c("simulated", "density function"), col = c(1, 2), pch = 1)
+```
+
+### Part 3: Simulation with Built-in R Functions
+### 9.
+```{r}
+x <- 5
+x_vals <- c()
+while(x > 0){
+  r <- runif(1, min = -2, max = 1)
+  x <- x + r
+  if(x > 0){x_vals <- c(x_vals, x)}
+}
+x_vals
+
+```
+
+### 10.
+```{r}
+plot(x_vals, xlab = "iterations", ylab = "x value", type = "o")
+```
+
+### 11.
+```{r}
+random_walk <- function(x_start = 5, plot_walk = TRUE){
+  x <- x_start
+  iteration <- 0
+  x_vals <- c()
+  while(x > 0){
+    r <- runif(1, min = -2, max = 1)
+    x <- x + r
+    if(x > 0){x_vals <- c(x_vals, x)}
+    iteration <- iteration + 1
+  }
+  if(plot_walk == TRUE){
+    plot(x_vals, xlab = "iterations", ylab = "x value", type = "o")
+  }
+  return(c(data.frame(x_vals), data.frame(iteration)))
+}
+random_walk()
+random_walk()
+
+random_walk <- function(x_start = 10, plot_walk = FALSE){
+  x <- x_start
+  iteration <- 0
+  x_vals <- c()
+  while(x > 0){
+    r <- runif(1, min = -2, max = 1)
+    x <- x + r
+    if(x > 0){x_vals <- c(x_vals, x)}
+    iteration <- iteration + 1
+  }
+  if(plot_walk == TRUE){
+    plot(x_vals, xlab = "iterations", ylab = "x value", type = "o")
+  }
+  return(c(data.frame(x_vals), data.frame(iteration)))
+}
+random_walk()
+random_walk()
+```
+
+### 12.
+```{r}
+random_walk <- function(x_start = 5, plot_walk = FALSE){
+  x <- x_start
+  iteration <- 0
+  x_vals <- c()
+  while(x > 0){
+    r <- runif(1, min = -2, max = 1)
+    x <- x + r
+    if(x > 0){x_vals <- c(x_vals, x)}
+    iteration <- iteration + 1
+  }
+  if(plot_walk == TRUE){
+    plot(x_vals, xlab = "iterations", ylab = "x value", type = "o")
+  }
+  return(c(data.frame(x_vals), data.frame(iteration)))
+}
+
+iter <- c(rep(NA, 10000))
+for(i in 1:10000){
+  iter[i] <- random_walk()$iteration
+}
+mean(iter)
+```
+
+### 13.
+```{r}
+random_walk <- function(seed, x_start = 5, plot_walk = FALSE){
+  if(!missing(seed)){
+    set.seed(seed)
+  }
+  x <- x_start
+  iteration <- 0
+  x_vals <- c()
+  while(x > 0){
+    r <- runif(1, min = -2, max = 1)
+    x <- x + r
+    if(x > 0){x_vals <- c(x_vals, x)}
+    iteration <- iteration + 1
+  }
+  if(plot_walk == TRUE){
+    plot(x_vals, xlab = "iterations", ylab = "x value", type = "o")
+  }
+  return(c(data.frame(x_vals), data.frame(iteration)))
+
+}
+
+random_walk(33)
+random_walk(33)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
